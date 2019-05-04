@@ -945,7 +945,8 @@ void idPhysics_Player::WalkMove( void )
 	viewForward.Normalize();
 	viewRight.Normalize();
 
-	idVec3 wishdir = viewForward * command.forwardmove + viewRight * command.rightmove;
+	idVec3 wishvel = viewForward * command.forwardmove + viewRight * command.rightmove;
+	idVec3 wishdir = wishvel;
 	float wishspeed = wishdir.Normalize();
 	wishspeed *= scale;
 
@@ -3820,7 +3821,6 @@ void idPhysics_Player::UpdateMantleTimers()
 			case hang_DarkModMantlePhase:
 				DM_LOG(LC_MOVEMENT, LT_DEBUG)LOGSTRING ("MantleMod: Pulling up...\r");
 				m_mantlePhase = pull_DarkModMantlePhase;
-				player->StartSound("snd_player_mantle_rustleS", SND_CHANNEL_BODY3, 0, false, NULL);
 				player->StartSound("snd_player_mantle_pull", SND_CHANNEL_VOICE, 0, false, NULL); // grayman #3010
 				break;
 
@@ -3836,7 +3836,6 @@ void idPhysics_Player::UpdateMantleTimers()
 				// Go into crouch
 				current.movementFlags |= PMF_DUCKED;
 
-				player->StartSound("snd_player_mantle_rustleS", SND_CHANNEL_BODY3, 0, false, NULL);
 				player->StartSound("snd_player_mantle_push", SND_CHANNEL_VOICE, 0, false, NULL); // grayman #3010
 				break;
 
@@ -3847,7 +3846,6 @@ void idPhysics_Player::UpdateMantleTimers()
 				// Go into crouch
 				current.movementFlags |= PMF_DUCKED;
 
-				player->StartSound("snd_player_mantle_rustleS", SND_CHANNEL_BODY3, 0, false, NULL);
 				player->StartSound("snd_player_mantle_push", SND_CHANNEL_VOICE, 0, false, NULL); // grayman #3010
 				break;
 
@@ -3878,10 +3876,7 @@ void idPhysics_Player::UpdateMantleTimers()
 			{
 				// Handle end of mantle
 				// Ishtvan 11/20/05 - Raise weapons after mantle is done
-				static_cast<idPlayer*>(self)->SetImmobilization("MantleMove", 0);
-
-				// The mantle consumes all velocity
-				current.velocity.Zero();
+				static_cast<idPlayer*>(self)->SetImmobilization("MantleMove", 0);		
 			}
 		}
 
@@ -3953,6 +3948,15 @@ void idPhysics_Player::StartMantle
 	// when the jump key is released outside a mantle phase
 	m_mantleStartPossible = false;
 
+	// Check if at high velocity to play grunt sound based on that
+	const bool bIsHighVelocity = 
+		current.velocity.LengthSqr() >
+		pow(cv_pm_mantle_pushNonCrouched_playgrunt_speedthreshold.GetFloat(), 2);
+
+	// If mantling from a jump, cancel any velocity so that it does
+	// not continue after the mantle is completed.
+	current.velocity.Zero();
+
 	// Calculate mantle distance
 	idVec3 mantleDistanceVec = endPos - startPos;
 
@@ -3962,8 +3966,6 @@ void idPhysics_Player::StartMantle
 	if (initialMantlePhase == hang_DarkModMantlePhase)
 	{
 		DM_LOG(LC_MOVEMENT, LT_DEBUG)LOGSTRING("Mantle starting with hang\r");
-		player->StartSound("snd_player_mantle_impact", SND_CHANNEL_BODY2, 0, false, NULL);
-		player->StartSound("snd_player_mantle_rustle", SND_CHANNEL_BODY3, 0, false, NULL);
 
 		// Impart a force on mantled object?
 		if (m_p_mantledEntity != NULL && self != NULL)
@@ -3974,6 +3976,7 @@ void idPhysics_Player::StartMantle
 			if (info.invMass != 0.0f) 
 			{
 				m_p_mantledEntity->ActivatePhysics(self);
+				// STiFU: Why access current.velocity here when we zero'd it before?
 				m_p_mantledEntity->ApplyImpulse( self, m_mantledEntityID, endPos, current.velocity / ( info.invMass * 2.0f ) );
 			}
 		}
@@ -3981,15 +3984,11 @@ void idPhysics_Player::StartMantle
 	else if (initialMantlePhase == pull_DarkModMantlePhase)
 	{
 		DM_LOG(LC_MOVEMENT, LT_DEBUG)LOGSTRING("Mantle starting with pull upward\r");
-		player->StartSound("snd_player_mantle_impact", SND_CHANNEL_BODY2, 0, false, NULL);
-		player->StartSound("snd_player_mantle_rustle", SND_CHANNEL_BODY3, 0, false, NULL);
 		player->StartSound("snd_player_mantle_pull", SND_CHANNEL_VOICE, 0, false, NULL); // grayman #3010
 	}
 	else if (initialMantlePhase == pullFast_DarkModMantlePhase)
 	{
 		DM_LOG(LC_MOVEMENT, LT_DEBUG)LOGSTRING("Mantle starting with quick silent pull upward\r"); 
-		player->StartSound("snd_player_mantle_impact", SND_CHANNEL_BODY2, 0, false, NULL);
-		player->StartSound("snd_player_mantle_rustle", SND_CHANNEL_BODY3, 0, false, NULL);
 	}
 	else if (initialMantlePhase == shiftHands_DarkModMantlePhase)
 	{
@@ -4002,26 +4001,16 @@ void idPhysics_Player::StartMantle
 
 		// Start with push upward
 		DM_LOG(LC_MOVEMENT, LT_DEBUG)LOGSTRING("Mantle starting with push upward\r");
-		player->StartSound("snd_player_mantle_impact", SND_CHANNEL_BODY2, 0, false, NULL);
-		player->StartSound("snd_player_mantle_rustle", SND_CHANNEL_BODY3, 0, false, NULL);
 		player->StartSound("snd_player_mantle_push", SND_CHANNEL_VOICE, 0, false, NULL); // grayman #3010
 	}
 	else if (initialMantlePhase == pushNonCrouched_DarkModMantlePhase)
 	{
 		DM_LOG(LC_MOVEMENT, LT_DEBUG)LOGSTRING("Mantle starting with push non-crouched upward\r");
-
-		// We make contact with the feet. Play footstep sound and the endpos
-		idPlayer* pPlayer = dynamic_cast<idPlayer*>(self);
-		if (pPlayer)
-			pPlayer->PlayFootStepSound(&endPos, true);
-
-		// Play grunt at high velocity
-		if (current.velocity.LengthSqr() >
-			pow(cv_pm_mantle_pushNonCrouched_playgrunt_speedthreshold.GetFloat(), 2))
-		{
-			player->StartSound("snd_player_mantle_push", SND_CHANNEL_VOICE, 0, false, NULL);
-		}
+  		if (bIsHighVelocity)
+			// Only play sound at high velocity
+			player->StartSound("snd_player_mantle_push", SND_CHANNEL_VOICE, 0, false, NULL); // grayman #3010
 	}
+
 
 	m_mantlePhase = initialMantlePhase;
 	m_mantleTime = GetMantleTimeForPhase(m_mantlePhase);
@@ -4411,7 +4400,7 @@ idPhysics_Player::EMantleable idPhysics_Player::DetermineIfMantleTargetHasMantle
 		if (b_mantlePossible)
 		{
 			trace_t ceilTrace;
-			gameLocal.clip.Translation(ceilTrace, testPosition, testPosition,
+			gameLocal.clip.Translation(ceilTrace, testPosition,	testPosition,
 				clipModel, clipModel->GetAxis(), clipMask, self);
 			if (ceilTrace.fraction >= 1.0f)
 			{
@@ -4721,7 +4710,7 @@ void idPhysics_Player::PerformMantle()
 		// possible
 		idVec3 mantleEndPoint;
 		EMantleable IsMantleable = ComputeMantlePathForTarget
-		(
+    		(
 			maxVerticalReachDistance,
 			maxHorizontalReachDistance,
 			eyePos,

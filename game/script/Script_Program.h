@@ -313,12 +313,11 @@ public:
 	initialized_t			initialized;
 
 public:
-							idVarDef( idTypeDef *typeptr = NULL, const char *fileName = NULL );
+							idVarDef( idTypeDef *typeptr = NULL );
 							~idVarDef();
 
 	const char *			Name( void ) const;
 	const char *			GlobalName( void ) const;
-	const char *			FileName( void ) const { return fileName.c_str(); }
 
 	void					SetTypeDef( idTypeDef *_type ) { typeDef = _type; }
 	idTypeDef *				TypeDef( void ) const { return typeDef; }
@@ -339,7 +338,6 @@ private:
 	idTypeDef *				typeDef;
 	idVarDefName *			name;		// name of this var
 	idVarDef *				next;		// next var with the same name
-	idStr					fileName;
 };
 
 /***********************************************************************

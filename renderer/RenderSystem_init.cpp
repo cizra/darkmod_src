@@ -32,7 +32,7 @@ idCVar r_glDriver( "r_glDriver", "", CVAR_RENDERER, "\"opengl32\", etc." );
 idCVar r_useLightPortalFlow( "r_useLightPortalFlow", "1", CVAR_RENDERER | CVAR_BOOL, "use a more precise area reference determination" );
 idCVar r_multiSamples( "r_multiSamples", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "number of antialiasing samples" );
 idCVar r_displayRefresh( "r_displayRefresh", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_NOCHEAT, "optional display refresh rate option for vid mode", 0.0f, 200.0f );
-idCVar r_fullscreen( "r_fullscreen", "2", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "0 = windowed, 1 = full screen, 2 = fullscreen windowed" );
+idCVar r_fullscreen( "r_fullscreen", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "0 = windowed, 1 = full screen" );
 idCVar r_customWidth( "r_customWidth", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "video resolution, horizontal" );
 idCVar r_customHeight( "r_customHeight", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "video resolution, vertical" );
 idCVar r_singleTriangle( "r_singleTriangle", "0", CVAR_RENDERER | CVAR_BOOL, "only draw a single triangle per primitive" );
@@ -154,7 +154,7 @@ idCVar r_lightAllBackFaces( "r_lightAllBackFaces", "0", CVAR_RENDERER | CVAR_BOO
 idCVar r_skipModels( "r_skipModels", "0", CVAR_RENDERER | CVAR_INTEGER, "0 - draw all, 1 - static only, 2 - dynamic only" );
 
 // visual debugging info
-idCVar r_showPortals( "r_showPortals", "0", CVAR_RENDERER | CVAR_BOOL, "draw portal outlines in color: green = player sees through portal; yellow = not seen through but visleaf is open through another portal; red = portal and visleaf the other side are closed." );
+idCVar r_showPortals( "r_showPortals", "0", CVAR_RENDERER | CVAR_INTEGER, "draw portal outlines in color: green = player sees through portal; yellow = not seen through but visleaf is open through another portal; red = portal and visleaf the other side are closed." );
 idCVar r_showUnsmoothedTangents( "r_showUnsmoothedTangents", "0", CVAR_RENDERER | CVAR_BOOL, "if 1, put all nvidia register combiner programming in display lists" );
 idCVar r_showSilhouette( "r_showSilhouette", "0", CVAR_RENDERER | CVAR_BOOL, "highlight edges that are casting shadow planes" );
 idCVar r_showVertexColor( "r_showVertexColor", "0", CVAR_RENDERER | CVAR_BOOL, "draws all triangles with the solid vertex color" );
@@ -607,6 +607,8 @@ static void R_CheckPortableExtensions( void ) {
 			qglRenderbufferStorageMultisample = ( PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC )GLimp_ExtensionPointer( "glRenderbufferStorageMultisampleEXT" );
 		}
 	}
+
+	glConfig.gpuShader4Available = R_CheckExtension( "GL_EXT_gpu_shader4" );
 
 	// geometry shaders
 	glConfig.geometryShaderAvailable = R_CheckExtension( "GL_ARB_geometry_shader4"/*, 3.2*/ );

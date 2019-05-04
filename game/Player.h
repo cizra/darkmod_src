@@ -577,12 +577,9 @@ public:
 	void					OnStopShoulderingBody(idEntity* body);
 
 	/**
-	 * @brief		greebo:	Plays the footstep sound according to the current movement type.
-	 * @remark		STiFU #4947: Refactored to give a clearer structure and added further arguments
-	 * @param		pPointOfContact If not NULL, the material type is checked at this given position instead of the player position. Furthermore, the waterlevel is ignored because it is invalid at this position.
-	 * @param		skipTimeCheck If true, the sound is played regardless of the last playtime
+	 * greebo: Plays the footstep sound according to the current movement type.
 	 */
-	virtual void			PlayFootStepSound(idVec3* pPointOfContact = NULL, const bool skipTimeCheck = false);
+	virtual void			PlayFootStepSound();
 
 	void					UpdateConditions( void );
 	void					SetViewAngles( const idAngles &angles );

@@ -26,9 +26,7 @@ RB_PrepareStageTexturing_ReflectCube
 Extracted from RB_PrepareStageTexturing
 ================
 */
-ID_NOINLINE void RB_PrepareStageTexturing_ReflectCube( const shaderStage_t *pStage, const drawSurf_t *surf, idDrawVert *ac ) {
-	qglVertexAttribPointer( 2, 3, GL_FLOAT, false, sizeof( idDrawVert ), ac->normal.ToFloatPtr() );
-	qglEnableVertexAttribArray( 2 );
+void RB_PrepareStageTexturing_ReflectCube( const shaderStage_t *pStage, const drawSurf_t *surf, idDrawVert *ac ) {
 	// see if there is also a bump map specified
 	const shaderStage_t *bumpStage = surf->material->GetBumpStage();
 	if ( bumpStage ) {
@@ -37,21 +35,23 @@ ID_NOINLINE void RB_PrepareStageTexturing_ReflectCube( const shaderStage_t *pSta
 		bumpStage->texture.image->Bind();
 		GL_SelectTexture( 0 );
 
+		qglVertexAttribPointer( 2, 3, GL_FLOAT, false, sizeof( idDrawVert ), ac->normal.ToFloatPtr() );
 		qglVertexAttribPointer( 8, 2, GL_FLOAT, false, sizeof( idDrawVert ), ac->st.ToFloatPtr() );
 		qglVertexAttribPointer( 9, 3, GL_FLOAT, false, sizeof( idDrawVert ), ac->tangents[0].ToFloatPtr() );
 		qglVertexAttribPointer( 10, 3, GL_FLOAT, false, sizeof( idDrawVert ), ac->tangents[1].ToFloatPtr() );
 
+		qglEnableVertexAttribArray( 2 );
 		qglEnableVertexAttribArray( 8 );
 		qglEnableVertexAttribArray( 9 );
 		qglEnableVertexAttribArray( 10 );
 
 		// Program env 5, 6, 7, 8 have been set in RB_SetProgramEnvironmentSpace
-		//R_UseProgramARB( VPROG_BUMPY_ENVIRONMENT );
-		cubeMapShader.Use();
-		qglUniform1f( cubeMapShader.reflective, 1 );
-		qglUniformMatrix4fv( cubeMapShader.modelMatrix, 1, false, backEnd.currentSpace->modelMatrix );
-		qglUniform3fv( cubeMapShader.viewOrigin, 1, backEnd.viewDef->renderView.vieworg.ToFloatPtr() );
+		R_UseProgramARB( VPROG_BUMPY_ENVIRONMENT );
 	} else {
+		// per-pixel reflection mapping without a normal map
+		qglVertexAttribPointer( 2, 3, GL_FLOAT, false, sizeof( idDrawVert ), ac->normal.ToFloatPtr() );
+		qglEnableVertexAttribArray( 2 );
+
 		R_UseProgramARB( VPROG_ENVIRONMENT );
 	}
 }
@@ -110,14 +110,11 @@ void RB_FinishStageTexturing( const shaderStage_t *pStage, const drawSurf_t *sur
 			qglDisableVertexAttribArray( 8 );
 			qglDisableVertexAttribArray( 9 );
 			qglDisableVertexAttribArray( 10 );
-			qglUniform1f( cubeMapShader.reflective, 0 );
-			qglUseProgram( 0 );
 		}
 
 		// per-pixel reflection mapping without bump mapping
 		qglDisableVertexAttribArray( 2 );
 		R_UseProgramARB();
-
 		break;
 	}
 
@@ -1151,8 +1148,6 @@ RB_STD_FogAllLights
 ==================
 */
 void RB_STD_FogAllLights( void ) {
-	viewLight_t	*vLight;
-
 	if ( r_skipFogLights.GetBool() ||
 		r_showOverDraw.GetInteger() != 0 ||
 		backEnd.viewDef->isXraySubview /* dont fog in xray mode*/ ) {
@@ -1162,18 +1157,16 @@ void RB_STD_FogAllLights( void ) {
 
 	RB_LogComment( "---------- RB_STD_FogAllLights ----------\n" );
 
-	for ( vLight = backEnd.viewDef->viewLights ; vLight ; vLight = vLight->next ) {
-		backEnd.vLight = vLight;
-
-		if ( !vLight->lightShader->IsFogLight() && !vLight->lightShader->IsBlendLight() ) {
+	for ( backEnd.vLight = backEnd.viewDef->viewLights ; backEnd.vLight; backEnd.vLight = backEnd.vLight->next ) {
+		if ( !backEnd.vLight->lightShader->IsFogLight() && !backEnd.vLight->lightShader->IsBlendLight() ) {
 			continue;
 		}
 		qglDisable( GL_STENCIL_TEST );
 
-		if ( vLight->lightShader->IsFogLight() ) {
-			RB_FogPass( vLight->globalInteractions, vLight->localInteractions );
-		} else if ( vLight->lightShader->IsBlendLight() ) {
-			RB_BlendLight( vLight->globalInteractions, vLight->localInteractions );
+		if ( backEnd.vLight->lightShader->IsFogLight() ) {
+			RB_FogPass( backEnd.vLight->globalInteractions, backEnd.vLight->localInteractions );
+		} else if ( backEnd.vLight->lightShader->IsBlendLight() ) {
+			RB_BlendLight( backEnd.vLight->globalInteractions, backEnd.vLight->localInteractions );
 		}
 	}
 	qglEnable( GL_STENCIL_TEST );

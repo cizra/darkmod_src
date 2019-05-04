@@ -506,8 +506,13 @@ RB_SubmittInteraction
 =================
 */
 static void RB_SubmittInteraction( drawInteraction_t *din, bool multi = false ) {
-	if ( !din->bumpImage && !r_skipBump.GetBool() )
+	if ( !din->bumpImage ) {
 		return;
+	}
+
+	if ( r_skipBump.GetBool() ) {
+		din->bumpImage = globalImages->flatNormalMap;
+	}
 
 	if ( !din->diffuseImage || r_skipDiffuse.GetBool() ) {
 		din->diffuseImage = globalImages->blackImage;
@@ -722,15 +727,16 @@ void RB_CreateSingleDrawInteractions( const drawSurf_t *surf ) {
 				// ignore ambient stages while drawing interactions
 				break;
 			}
-			case SL_BUMP: {				
-				if ( !surfaceRegs[ surfaceStage->conditionRegister ] ) // ignore stage that fails the condition
+			case SL_BUMP: {
+				// ignore stage that fails the condition
+				if ( !surfaceRegs[ surfaceStage->conditionRegister ] ) {
 					break;
-				if ( !r_skipBump.GetBool() ) {
-					RB_SubmittInteraction( &inter ); // draw any previous interaction
-					inter.diffuseImage = NULL;
-					inter.specularImage = NULL;
-					R_SetDrawInteraction( surfaceStage, surfaceRegs, &inter.bumpImage, inter.bumpMatrix, NULL );
 				}
+				// draw any previous interaction
+				RB_SubmittInteraction( &inter );
+				inter.diffuseImage = NULL;
+				inter.specularImage = NULL;
+				R_SetDrawInteraction( surfaceStage, surfaceRegs, &inter.bumpImage, inter.bumpMatrix, NULL );
 				break;
 			}
 			case SL_DIFFUSE: {
